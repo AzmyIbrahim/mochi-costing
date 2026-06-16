@@ -312,18 +312,11 @@ function MarginBlock({ kosTotal, tiktokPct, hargaJual, accent }) {
 }
 
 // ─── PACK CARD ───────────────────────────────────────────────────────────────
-function PackCard({ pack, kosPerBiji, pkg, setPkg, tiktokPct, accent, isMini, pcsPerPack }) {
+function PackCard({ pack, kosPerBiji, pkg, setPkg, tiktokPct, accent, isMini, pcsPerPack, harga, setHarga }) {
   const kosBekas  = pkg[pack.pkgKey];
   const kosParcel = pkg.parcel;
   const kosProd   = kosPerBiji * pack.qty;
   const kosTotal  = kosProd + kosBekas + kosParcel;
-
-  const [harga, setHarga] = useState(() => {
-    const tk = tiktokPct / 100;
-    const p  = kosTotal / (1 - tk - 0.65);
-    return Math.ceil(p * 2) / 2;
-  });
-
   const packLabel = isMini ? `${pack.label} · ${pcsPerPack} pcs` : pack.label;
 
   return (
@@ -394,6 +387,20 @@ function SKUTab({ sku, bahan, tiktokPct, pkg, setPkg }) {
   const kulitBatchCost   = sku.kulit.bahan.reduce((s, k) => s + pgram(bahan, k.id) * k.guna, 0);
   const fillingBatchCost = sku.filling.bahan.reduce((s, f) => s + pgram(bahan, f.id) * f.guna, 0);
   const fillingBiji      = sku.filling.totalG / sku.fillingGPerPcs;
+
+  // Harga state disimpan di sini supaya tak reset bila tukar tab
+  const [hargaMap, setHargaMap] = useState(() => {
+    const map = {};
+    sku.packs.forEach(pack => {
+      const kosProd   = kosPerBiji * pack.qty;
+      const kosBekas  = pkg[pack.pkgKey];
+      const kosParcel = pkg.parcel;
+      const kosTotal  = kosProd + kosBekas + kosParcel;
+      const tk = tiktokPct / 100;
+      map[pack.label] = Math.ceil((kosTotal / (1 - tk - 0.65)) * 2) / 2;
+    });
+    return map;
+  });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14, padding: "16px 16px 40px" }}>
@@ -470,6 +477,8 @@ function SKUTab({ sku, bahan, tiktokPct, pkg, setPkg }) {
           accent={sku.accent}
           isMini={sku.isMini}
           pcsPerPack={sku.pcsPerPack}
+          harga={hargaMap[pack.label]}
+          setHarga={(val) => setHargaMap(prev => ({ ...prev, [pack.label]: typeof val === "function" ? val(prev[pack.label]) : val }))}
         />
       ))}
     </div>
